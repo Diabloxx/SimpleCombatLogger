@@ -645,9 +645,6 @@ function SimpleCombatLoggerClassic:CheckDisableLogging(event)
         if (self.db.profile.enabledebug) then
             self:Print("Not in instance, stopping logging")
         end
-        if (IsLoggingCombat) then
-            self:Print("Left instance - Combat logging disabled")
-        end
         self:StopLogging()
         return
     end
@@ -656,9 +653,6 @@ function SimpleCombatLoggerClassic:CheckDisableLogging(event)
     if (event == "PLAYER_LEAVING_WORLD") then
         if (self.db.profile.enabledebug) then
             self:Print("Player leaving world, stopping logging")
-        end
-        if (IsLoggingCombat) then
-            self:Print("Leaving world - Combat logging disabled")
         end
         self:StopLogging()
         return
