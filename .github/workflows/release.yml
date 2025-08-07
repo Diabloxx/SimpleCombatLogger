@@ -1,39 +1,51 @@
-# description of this workflow, can be anything you want
-name: Package and release
+name: Create Release
 
-# we need to let GitHub know _when_ we want to release, typically only when we create a new tag.
-# this will target only tags, and not all pushes to the master branch.
-# this part can be heavily customized to your liking, like targeting only tags that match a certain word,
-# other branches or even pullrequests.
 on:
   push:
     tags:
-      - '**'
+      - 'v*.*.*'
 
-# a workflow is built up as jobs, and within these jobs are steps
 jobs:
-
-  # "release" is a job, you can name it anything you want
   release:
-
-    # we can run our steps on pretty much anything, but the "ubuntu-latest" image is a safe bet
     runs-on: ubuntu-latest
-
-    # specify the environment variables used by the packager, matching the secrets from the project on GitHub
-    env:
-      CF_API_KEY: ${{ secrets.CF_API_KEY }}
-      GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}  # "GITHUB_TOKEN" is a secret always provided to the workflow
-                                                 # for your own token, the name cannot start with "GITHUB_"
-
-    # "steps" holds a list of all the steps needed to package and release our AddOn
+    
     steps:
-
-      # we first have to clone the AddOn project, this is a required step
-      - name: Clone project
-        uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  # gets git history for changelogs
-
-      # once cloned, we just run the GitHub Action for the packager project
-      - name: Package and release
-        uses: BigWigsMods/packager@v2
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Get version from tag
+      id: get_version
+      run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+      
+    - name: Create addon archive
+      run: |
+        # Create a temporary directory for the addon
+        mkdir -p SimpleCombatLogger
+        
+        # Copy addon files (excluding git and github files)
+        cp -r *.lua *.xml *.toc *.md LICENSE Libs/ SimpleCombatLogger/ || true
+        
+        # Create the zip archive
+        zip -r SimpleCombatLogger-Classic-${{ steps.get_version.outputs.VERSION }}.zip SimpleCombatLogger/
+        
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: SimpleCombatLogger Classic ${{ steps.get_version.outputs.VERSION }}
+        body_path: RELEASE_NOTES.md
+        draft: false
+        prerelease: false
+        
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./SimpleCombatLogger-Classic-${{ steps.get_version.outputs.VERSION }}.zip
+        asset_name: SimpleCombatLogger-Classic-${{ steps.get_version.outputs.VERSION }}.zip
+        asset_content_type: application/zip
