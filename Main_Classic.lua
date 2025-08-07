@@ -209,6 +209,40 @@ local options = {
                     get = function(info) return SimpleCombatLoggerClassic.db.profile.scenario.scenario end
                 }
             }
+        },
+        credits = {
+            name = "Credits",
+            type = "group",
+            args = {
+                header = {
+                    name = "SimpleCombatLogger Classic",
+                    type = "header",
+                    order = 1
+                },
+                original = {
+                    name = "Original SimpleCombatLogger created by csutcliff",
+                    type = "description",
+                    fontSize = "medium",
+                    order = 2
+                },
+                modified = {
+                    name = "Classic adaptation by Valleriaà-Firemaw (EU)",
+                    type = "description",
+                    fontSize = "medium",
+                    order = 3
+                },
+                spacer = {
+                    name = " ",
+                    type = "description",
+                    order = 4
+                },
+                version = {
+                    name = "Version: 1.0.0 - Classic MoP (Interface 50500)",
+                    type = "description",
+                    fontSize = "small",
+                    order = 5
+                }
+            }
         }
     }
 }
