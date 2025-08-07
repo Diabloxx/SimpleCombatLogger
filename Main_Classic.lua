@@ -645,6 +645,9 @@ function SimpleCombatLoggerClassic:CheckDisableLogging(event)
         if (self.db.profile.enabledebug) then
             self:Print("Not in instance, stopping logging")
         end
+        if (IsLoggingCombat) then
+            self:Print("Left instance - Combat logging disabled")
+        end
         self:StopLogging()
         return
     end
@@ -654,101 +657,57 @@ function SimpleCombatLoggerClassic:CheckDisableLogging(event)
         if (self.db.profile.enabledebug) then
             self:Print("Player leaving world, stopping logging")
         end
+        if (IsLoggingCombat) then
+            self:Print("Leaving world - Combat logging disabled")
+        end
         self:StopLogging()
         return
     end
     
-    -- Check specific instance types and their settings
+    -- Check if current instance type should have logging disabled
+    local shouldStop = false
+    
     if (instanceType == "pvp") then
-        if (not self.db.profile.pvp.regularbg) then
-            if (self.db.profile.enabledebug) then
-                self:Print("Battlegrounds disabled, stopping logging")
-            end
-            self:StopLogging()
-        end
+        shouldStop = not self.db.profile.pvp.regularbg
     elseif (instanceType == "party") then
         if (difficultyID == 1 or difficultyID == 173) then -- Normal Dungeon
-            if (not self.db.profile.party.normal) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Normal dungeons disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+            shouldStop = not self.db.profile.party.normal
         elseif (difficultyID == 2 or difficultyID == 174) then -- Heroic Dungeon
-            if (not self.db.profile.party.heroic) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Heroic dungeons disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+            shouldStop = not self.db.profile.party.heroic
         elseif (difficultyID == 8) then -- Challenge Mode
-            if (not self.db.profile.party.challenge) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Challenge mode disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+            shouldStop = not self.db.profile.party.challenge
         else
-            if (self.db.profile.enabledebug) then
-                self:Print("Unknown party instance type (ID: " .. tostring(difficultyID) .. "), stopping logging")
-            end
-            self:StopLogging()
+            -- Unknown party instance, stop logging
+            shouldStop = true
         end
     elseif (instanceType == "raid") then
         if (difficultyID == 3 or difficultyID == 175) then -- 10-man Normal
-            if (not self.db.profile.raid.normal10) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Normal 10-man disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+            shouldStop = not self.db.profile.raid.normal10
         elseif (difficultyID == 4 or difficultyID == 176) then -- 25-man Normal
-            if (not self.db.profile.raid.normal25) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Normal 25-man disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+            shouldStop = not self.db.profile.raid.normal25
         elseif (difficultyID == 5 or difficultyID == 193) then -- 10-man Heroic
-            if (not self.db.profile.raid.heroic10) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Heroic 10-man disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+            shouldStop = not self.db.profile.raid.heroic10
         elseif (difficultyID == 6 or difficultyID == 194) then -- 25-man Heroic
-            if (not self.db.profile.raid.heroic25) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Heroic 25-man disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+            shouldStop = not self.db.profile.raid.heroic25
         elseif (difficultyID == 9) then -- 40 Player (legacy content)
-            if (not self.db.profile.raid.legacy40) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("40-man legacy raids disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+            shouldStop = not self.db.profile.raid.legacy40
         elseif (difficultyID == 148) then -- 20 Player (ZG, AQ20)
-            if (not self.db.profile.raid.legacy20) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("20-man legacy raids disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+            shouldStop = not self.db.profile.raid.legacy20
         else
-            if (self.db.profile.enabledebug) then
-                self:Print("Unknown raid instance type (ID: " .. tostring(difficultyID) .. "), stopping logging")
-            end
-            self:StopLogging()
+            -- Unknown raid instance, stop logging
+            shouldStop = true
         end
     elseif (instanceType == "scenario") then
-        if (not self.db.profile.scenario.scenario) then
-            if (self.db.profile.enabledebug) then
-                self:Print("Scenarios disabled, stopping logging")
-            end
-            self:StopLogging()
+        shouldStop = not self.db.profile.scenario.scenario
+    end
+    
+    if (shouldStop) then
+        if (self.db.profile.enabledebug) then
+            self:Print("Instance type disabled or unknown, stopping logging")
         end
+        if (IsLoggingCombat) then
+            self:Print("Combat logging disabled")
+        end
+        self:StopLogging()
     end
 end
