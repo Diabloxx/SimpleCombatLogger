@@ -37,7 +37,7 @@ Supports all Classic content types with proper difficulty detection for MoP Clas
 `/sclc test` - Shows current instance information and logging state
 
 ## Installation:
-This is designed to work alongside the retail version. Both can be installed simultaneously without conflicts.
+Search for the adoon on CurseForge (SimpleCombatLogger Classic)
 
 ## Features:
 - Automatic combat logging based on content type
