@@ -2,6 +2,27 @@ local SimpleCombatLoggerClassic = LibStub("AceAddon-3.0"):NewAddon("SimpleCombat
 local IsLoggingCombat = false
 local DelayStopTimer = nil
 
+-- MoP Dungeon and Scenario MapIDs for more precise detection
+local MoPDungeonMapIDs = {
+    [867] = "Temple of the Jade Serpent",
+    [875] = "Gate of the Setting Sun", 
+    [876] = "Stormstout Brewery",
+    [877] = "Shado-Pan Monastery",
+    [885] = "Mogu'shan Palace",
+    [887] = "Siege of Niuzao Temple",
+    [871] = "Scarlet Halls",
+    [874] = "Scarlet Monastery",
+    [898] = "Scholomance"
+}
+
+local MoPRaidMapIDs = {
+    [886] = "Terrace of Endless Spring",
+    [896] = "Mogu'shan Vaults",
+    [897] = "Heart of Fear",
+    [930] = "Throne of Thunder",
+    [953] = "Siege of Orgrimmar"
+}
+
 local options = {
     name = "SimpleCombatLogger Classic",
     handler = SimpleCombatLoggerClassic,
@@ -250,6 +271,33 @@ function SimpleCombatLoggerClassic:OnInitialize()
     end);
 end
 
+function SimpleCombatLoggerClassic:IsMoPContent(instanceName)
+    -- Check if the instance name matches known MoP content
+    if not instanceName then return false end
+    
+    local mopDungeons = {
+        ["Temple of the Jade Serpent"] = true,
+        ["Gate of the Setting Sun"] = true,
+        ["Stormstout Brewery"] = true,
+        ["Shado-Pan Monastery"] = true,
+        ["Mogu'shan Palace"] = true,
+        ["Siege of Niuzao Temple"] = true,
+        ["Scarlet Halls"] = true,
+        ["Scarlet Monastery"] = true,
+        ["Scholomance"] = true,
+    }
+    
+    local mopRaids = {
+        ["Terrace of Endless Spring"] = true,
+        ["Mogu'shan Vaults"] = true,
+        ["Heart of Fear"] = true,
+        ["Throne of Thunder"] = true,
+        ["Siege of Orgrimmar"] = true
+    }
+    
+    return mopDungeons[instanceName] or mopRaids[instanceName]
+end
+
 function SimpleCombatLoggerClassic:RefreshConfig()
     self:CheckToggleLogging(nil)
 end
@@ -271,7 +319,9 @@ function SimpleCombatLoggerClassic:OnEnable()
     self:RegisterEvent("UPDATE_INSTANCE_INFO", "CheckEnableLogging")
     self:RegisterEvent("PLAYER_DIFFICULTY_CHANGED", "CheckEnableLogging")
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA", "CheckDisableLogging")
+    self:RegisterEvent("ZONE_CHANGED", "CheckDisableLogging")
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "ArenaEventTimer")
+    self:RegisterEvent("PLAYER_LEAVING_WORLD", "CheckDisableLogging")
     self:CheckToggleLogging(nil)
 end
 
@@ -280,6 +330,8 @@ function SimpleCombatLoggerClassic:OnDisable()
     self:UnregisterEvent("UPDATE_INSTANCE_INFO")
     self:UnregisterEvent("PLAYER_DIFFICULTY_CHANGED")
     self:UnregisterEvent("ZONE_CHANGED_NEW_AREA")
+    self:UnregisterEvent("ZONE_CHANGED")
+    self:UnregisterEvent("PLAYER_LEAVING_WORLD")
     self:StopLogging()
 end
 
@@ -422,6 +474,27 @@ function SimpleCombatLoggerClassic:ArenaEventTimer(event)
             self:Print("Scheduling arena check for 5 seconds")
         end
         self:ScheduleTimer("CheckArenaLogging", 5)
+    else
+        -- Schedule a delayed check to ensure we stop logging if we've left an instance
+        self:ScheduleTimer("DelayedInstanceCheck", 3)
+    end
+end
+
+function SimpleCombatLoggerClassic:DelayedInstanceCheck()
+    local name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID, instanceGroupSize, LfgDungeonID = GetInstanceInfo()
+    if (self.db.profile.enabledebug) then
+        self:Print("Delayed Instance Check")
+        self:Print("Currently Logging: " .. tostring(IsLoggingCombat))
+        self:Print("    instanceType: " .. tostring(instanceType))
+        self:Print("    difficultyID: " .. tostring(difficultyID))
+    end
+    
+    -- If we're not in any meaningful instance, stop logging
+    if (instanceType == nil or instanceType == "none") then
+        if (self.db.profile.enabledebug) then
+            self:Print("Delayed check: Not in instance, stopping logging")
+        end
+        self:StopLogging()
     end
 end
 
@@ -435,6 +508,7 @@ end
 
 function SimpleCombatLoggerClassic:CheckEnableLogging(event)
     local name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID, instanceGroupSize, LfgDungeonID = GetInstanceInfo()
+    
     if (self.db.profile.enabledebug) then
         self:Print("Check Enable")
         self:Print("Currently Logging: " .. tostring(IsLoggingCombat))
@@ -449,6 +523,7 @@ function SimpleCombatLoggerClassic:CheckEnableLogging(event)
         self:Print("    instanceID: " .. tostring(instanceID))
         self:Print("    instanceGroupSize: " .. tostring(instanceGroupSize))
         self:Print("    LfgDungeonID: " .. tostring(LfgDungeonID))
+        self:Print("    isMoPContent: " .. tostring(self:IsMoPContent(name)))
     end
     
     if (instanceType == "pvp") then
@@ -470,8 +545,16 @@ function SimpleCombatLoggerClassic:CheckEnableLogging(event)
             if (self.db.profile.party.challenge) then
                 self:StartLogging()
             end
-        -- Celestial dungeons would likely use one of the existing party difficulty IDs
-        -- Will need testing to determine which specific ID they use
+        else
+            -- Check if this might be a celestial dungeon (LFR replacement)
+            -- Celestial dungeons might use a different difficulty ID
+            -- For now, treat unknown party difficulties as celestial if they're MoP content
+            if (self:IsMoPContent(name) and self.db.profile.party.celestial) then
+                if (self.db.profile.enabledebug) then
+                    self:Print("Detected potential celestial dungeon: " .. tostring(name) .. " (ID: " .. tostring(difficultyID) .. ")")
+                end
+                self:StartLogging()
+            end
         end
     elseif (instanceType == "raid") then
         -- Handle 10/25 man Normal/Heroic raids based on Classic difficulty IDs
@@ -503,9 +586,16 @@ function SimpleCombatLoggerClassic:CheckEnableLogging(event)
             end
         end
     elseif (instanceType == "scenario") then
-        -- Handle scenarios (new in MoP)
-        if (self.db.profile.scenario.scenario) then
-            self:StartLogging()
+        -- Handle scenarios (new in MoP) - be more specific about MoP scenarios
+        if (self:IsMoPContent(name)) then
+            if (self.db.profile.scenario.scenario) then
+                self:StartLogging()
+            end
+        else
+            -- For non-MoP scenarios, still log if enabled
+            if (self.db.profile.scenario.scenario) then
+                self:StartLogging()
+            end
         end
     end
 end
@@ -547,15 +637,29 @@ function SimpleCombatLoggerClassic:CheckDisableLogging(event)
         self:Print("    instanceID: " .. tostring(instanceID))
         self:Print("    instanceGroupSize: " .. tostring(instanceGroupSize))
         self:Print("    LfgDungeonID: " .. tostring(LfgDungeonID))
+        self:Print("    isMoPContent: " .. tostring(self:IsMoPContent(name)))
     end
     
+    -- If we're not in an instance at all, stop logging
     if (instanceType == nil or instanceType == "none") then
         if (self.db.profile.enabledebug) then
             self:Print("Not in instance, stopping logging")
         end
         self:StopLogging()
         return
-    elseif (instanceType == "pvp") then
+    end
+    
+    -- If we're leaving world (disconnecting/reloading), stop logging
+    if (event == "PLAYER_LEAVING_WORLD") then
+        if (self.db.profile.enabledebug) then
+            self:Print("Player leaving world, stopping logging")
+        end
+        self:StopLogging()
+        return
+    end
+    
+    -- Check specific instance types and their settings
+    if (instanceType == "pvp") then
         if (not self.db.profile.pvp.regularbg) then
             if (self.db.profile.enabledebug) then
                 self:Print("Battlegrounds disabled, stopping logging")
