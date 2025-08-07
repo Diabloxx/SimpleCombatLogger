@@ -1,149 +1,170 @@
-local SimpleCombatLogger = LibStub("AceAddon-3.0"):NewAddon("SimpleCombatLogger", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
+local SimpleCombatLoggerClassic = LibStub("AceAddon-3.0"):NewAddon("SimpleCombatLoggerClassic", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
 local IsLoggingCombat = false
 local DelayStopTimer = nil
 
+-- MoP Dungeon and Scenario MapIDs for more precise detection
+local MoPDungeonMapIDs = {
+    [867] = "Temple of the Jade Serpent",
+    [875] = "Gate of the Setting Sun", 
+    [876] = "Stormstout Brewery",
+    [877] = "Shado-Pan Monastery",
+    [885] = "Mogu'shan Palace",
+    [887] = "Siege of Niuzao Temple",
+    [871] = "Scarlet Halls",
+    [874] = "Scarlet Monastery",
+    [898] = "Scholomance"
+}
+
+local MoPRaidMapIDs = {
+    [886] = "Terrace of Endless Spring",
+    [896] = "Mogu'shan Vaults",
+    [897] = "Heart of Fear",
+    [930] = "Throne of Thunder",
+    [953] = "Siege of Orgrimmar"
+}
+
 local options = {
-    name = "SimpleCombatLogger",
-    handler = SimpleCombatLogger,
+    name = "SimpleCombatLogger Classic",
+    handler = SimpleCombatLoggerClassic,
     type = "group",
     args = {
         enable = {
             name = "Enabled",
             desc = "Enables / Disables the addon",
             type = "toggle",
-            set = function(info, value) SimpleCombatLogger:SetEnable(value) end,
-            get = function(info) return SimpleCombatLogger.db.profile.enable end
+            set = function(info, value) SimpleCombatLoggerClassic:SetEnable(value) end,
+            get = function(info) return SimpleCombatLoggerClassic.db.profile.enable end
         },
         disableaclprompt = {
             name = "Disable ACL Reminder",
             desc = "Disables the Advanced Combat Logging prompt",
             type = "toggle",
-            set = function(info, value) SimpleCombatLogger.db.profile.disableaclprompt = value end,
-            get = function(info) return SimpleCombatLogger.db.profile.disableaclprompt end
+            set = function(info, value) SimpleCombatLoggerClassic.db.profile.disableaclprompt = value end,
+            get = function(info) return SimpleCombatLoggerClassic.db.profile.disableaclprompt end
         },
         enabledebug = {
             name = "Debug",
             desc = "Enable Debug output",
             type = "toggle",
-            set = function(info, value) SimpleCombatLogger.db.profile.enabledebug = value end,
-            get = function(info) return SimpleCombatLogger.db.profile.enabledebug end
+            set = function(info, value) SimpleCombatLoggerClassic.db.profile.enabledebug = value end,
+            get = function(info) return SimpleCombatLoggerClassic.db.profile.enabledebug end
         },
         delaystop = {
             name = "Delayed Log Stop",
-            desc = "Delay the stopping of combat logging by 30 seconds, this can help compatibility with some external programs such as Warcraft Recorder",
+            desc = "Delay the stopping of combat logging by 30 seconds, this can help compatibility with some external programs",
             type = "toggle",
-            set = function(info, value) SimpleCombatLogger.db.profile.delaystop = value end,
-            get = function(info) return SimpleCombatLogger.db.profile.delaystop end
+            set = function(info, value) SimpleCombatLoggerClassic.db.profile.delaystop = value end,
+            get = function(info) return SimpleCombatLoggerClassic.db.profile.delaystop end
         },
         party = {
-            name = "Party",
+            name = "Dungeons",
             type = "group",
             args = {
                 normal = {
-                    name = "Normal",
+                    name = "Normal Dungeons",
                     desc = "Enables / Disables normal dungeon logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.party.normal = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.party.normal = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.party.normal end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.party.normal end
                 },
                 heroic = {
-                    name = "Heroic",
+                    name = "Heroic Dungeons",
                     desc = "Enables / Disables heroic dungeon logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.party.heroic = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.party.heroic = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.party.heroic end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.party.heroic end
                 },
-                mythicplus = {
-                    name = "Mythic Plus",
-                    desc = "Enables / Disables mythic plus logging",
+                challenge = {
+                    name = "Challenge Mode",
+                    desc = "Enables / Disables challenge mode dungeon logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.party.mythicplus = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.party.challenge = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.party.mythicplus end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.party.challenge end
                 },
-                mythic = {
-                    name = "Mythic",
-                    desc = "Enables / Disables mythic dungeon logging",
+                celestial = {
+                    name = "Celestial Dungeons",
+                    desc = "Enables / Disables celestial dungeon logging (replaces LFR)",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.party.mythic = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.party.celestial = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.party.mythic end
-                },
-                timewalking = {
-                    name = "Timewalking",
-                    desc = "Enables / Disables timewalking dungeon logging",
-                    type = "toggle",
-                    set = function(info, value)
-                        SimpleCombatLogger.db.profile.party.timewalking = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
-                    end,
-                    get = function(info) return SimpleCombatLogger.db.profile.party.timewalking end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.party.celestial end
                 },
             }
         },
         raid = {
-            name = "Raid",
+            name = "Raids",
             type = "group",
             args = {
-                lfr = {
-                    name = "LFR",
-                    desc = "Enables / Disables LFR raid logging",
+                normal10 = {
+                    name = "Normal 10-man",
+                    desc = "Enables / Disables normal 10-man raid logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.raid.lfr = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.raid.normal10 = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.raid.lfr end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.raid.normal10 end
                 },
-                normal = {
-                    name = "Normal",
-                    desc = "Enables / Disables normal raid logging",
+                normal25 = {
+                    name = "Normal 25-man",
+                    desc = "Enables / Disables normal 25-man raid logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.raid.normal = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.raid.normal25 = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.raid.normal end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.raid.normal25 end
                 },
-                heroic = {
-                    name = "Heroic",
-                    desc = "Enables / Disables heroic raid logging",
+                heroic10 = {
+                    name = "Heroic 10-man",
+                    desc = "Enables / Disables heroic 10-man raid logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.raid.heroic = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.raid.heroic10 = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.raid.heroic end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.raid.heroic10 end
                 },
-                mythic = {
-                    name = "Mythic",
-                    desc = "Enables / Disables mythic raid logging",
+                heroic25 = {
+                    name = "Heroic 25-man",
+                    desc = "Enables / Disables heroic 25-man raid logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.raid.mythic = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.raid.heroic25 = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.raid.mythic end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.raid.heroic25 end
                 },
-                timewalking = {
-                    name = "Timewalking",
-                    desc = "Enables / Disables timewalking raid logging",
+                legacy40 = {
+                    name = "Legacy 40-man",
+                    desc = "Enables / Disables legacy 40-man raid logging (MC, BWL, etc.)",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.raid.timewalking = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.raid.legacy40 = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.raid.timewalking end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.raid.legacy40 end
+                },
+                legacy20 = {
+                    name = "Legacy 20-man",
+                    desc = "Enables / Disables legacy 20-man raid logging (ZG, AQ20)",
+                    type = "toggle",
+                    set = function(info, value)
+                        SimpleCombatLoggerClassic.db.profile.raid.legacy20 = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
+                    end,
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.raid.legacy20 end
                 },
             }
         },
@@ -156,60 +177,20 @@ local options = {
                     desc = "Enables / Disables battleground logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.pvp.regularbg = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.pvp.regularbg = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.pvp.regularbg end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.pvp.regularbg end
                 },
-                ratedbg = {
-                    name = "Rated Battlegrounds",
-                    desc = "Enables / Disables rated battleground logging",
+                arena = {
+                    name = "Arenas",
+                    desc = "Enables / Disables arena logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.pvp.ratedbg = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.pvp.arena = value
+                        SimpleCombatLoggerClassic:CheckArenaLogging()
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.pvp.ratedbg end
-                },
-                arenaskirmish = {
-                    name = "Arena Skirmish",
-                    desc = "Enables / Disables arena skirmish logging",
-                    type = "toggle",
-                    set = function(info, value)
-                        SimpleCombatLogger.db.profile.pvp.arenaskirmish = value
-                        SimpleCombatLogger:CheckArenaLogging(nil)
-                    end,
-                    get = function(info) return SimpleCombatLogger.db.profile.pvp.arenaskirmish end
-                },
-                soloshuffle = {
-                    name = "Solo Shuffle",
-                    desc = "Enables / Disables solo shuffle logging",
-                    type = "toggle",
-                    set = function(info, value)
-                        SimpleCombatLogger.db.profile.pvp.soloshuffle = value
-                        SimpleCombatLogger:CheckArenaLogging(nil)
-                    end,
-                    get = function(info) return SimpleCombatLogger.db.profile.pvp.soloshuffle end
-                },
-                wargame = {
-                    name = "War Game",
-                    desc = "Enables / Disables war game logging",
-                    type = "toggle",
-                    set = function(info, value)
-                        SimpleCombatLogger.db.profile.pvp.wargame = value
-                        SimpleCombatLogger:CheckArenaLogging(nil)
-                    end,
-                    get = function(info) return SimpleCombatLogger.db.profile.pvp.wargame end
-                },
-                ratedarena = {
-                    name = "Rated Arena",
-                    desc = "Enables / Disables rated arena logging",
-                    type = "toggle",
-                    set = function(info, value)
-                        SimpleCombatLogger.db.profile.pvp.ratedarena = value
-                        SimpleCombatLogger:CheckArenaLogging(nil)
-                    end,
-                    get = function(info) return SimpleCombatLogger.db.profile.pvp.ratedarena end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.pvp.arena end
                 },
             }
         },
@@ -217,15 +198,49 @@ local options = {
             name = "Scenarios",
             type = "group",
             args = {
-                torghast = {
-                    name = "Torghast",
-                    desc = "Enables / Disables Torghast logging",
+                scenario = {
+                    name = "Scenarios",
+                    desc = "Enables / Disables scenario logging",
                     type = "toggle",
                     set = function(info, value)
-                        SimpleCombatLogger.db.profile.scenario.torghast = value
-                        SimpleCombatLogger:CheckToggleLogging(nil)
+                        SimpleCombatLoggerClassic.db.profile.scenario.scenario = value
+                        SimpleCombatLoggerClassic:CheckToggleLogging(nil)
                     end,
-                    get = function(info) return SimpleCombatLogger.db.profile.scenario.torghast end
+                    get = function(info) return SimpleCombatLoggerClassic.db.profile.scenario.scenario end
+                }
+            }
+        },
+        credits = {
+            name = "Credits",
+            type = "group",
+            args = {
+                header = {
+                    name = "SimpleCombatLogger Classic",
+                    type = "header",
+                    order = 1
+                },
+                original = {
+                    name = "Original SimpleCombatLogger created by csutcliff",
+                    type = "description",
+                    fontSize = "medium",
+                    order = 2
+                },
+                modified = {
+                    name = "Classic adaptation by Valleriaà-Firemaw (EU)",
+                    type = "description",
+                    fontSize = "medium",
+                    order = 3
+                },
+                spacer = {
+                    name = " ",
+                    type = "description",
+                    order = 4
+                },
+                version = {
+                    name = "Version: 1.0.1 - Classic MoP (Interface 50500)",
+                    type = "description",
+                    fontSize = "small",
+                    order = 5
                 }
             }
         }
@@ -253,16 +268,16 @@ local defaults = {
     }
 }
 
-function SimpleCombatLogger:OnInitialize()
+function SimpleCombatLoggerClassic:OnInitialize()
     -- Called when the addon is initialized
 
     -- ACL Prompt
-    StaticPopupDialogs["SCL_ENABLE_ACL"] = {
-        text = "Advaned Combat Logging is required for most combat log parsers, would you like to enable it?",
+    StaticPopupDialogs["SCL_CLASSIC_ENABLE_ACL"] = {
+        text = "Advanced Combat Logging is required for most combat log parsers, would you like to enable it?",
         button1 = "Yes",
         button2 = "No",
         OnAccept = function()
-            SimpleCombatLogger:EnableACL()
+            SimpleCombatLoggerClassic:EnableACL()
         end,
         timeout = 0,
         whileDead = true,
@@ -271,17 +286,17 @@ function SimpleCombatLogger:OnInitialize()
     }
 
     -- Initialisation
-    self.db = LibStub("AceDB-3.0"):New("SimpleCombatLoggerDB", defaults, true)
+    self.db = LibStub("AceDB-3.0"):New("SimpleCombatLoggerClassicDB", defaults, true)
     self.db.RegisterCallback(self, "OnProfileChanged", "RefreshConfig")
     self.db.RegisterCallback(self, "OnProfileCopied", "RefreshConfig")
     self.db.RegisterCallback(self, "OnProfileReset", "RefreshConfig")
-    LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("SimpleCombatLogger", options)
+    LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("SimpleCombatLoggerClassic", options)
     --Only the category ID is required, discard first parameter
-    _, self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SimpleCombatLogger", "SimpleCombatLogger")
-    LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("SCL/Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db))
-    LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SCL/Profiles", "Profiles", "SimpleCombatLogger")
-    self:RegisterChatCommand("scl", "ChatCommand");
-    self:RegisterChatCommand("SimpleCombatLogger", "ChatCommand");
+    _, self.optionsFrame = LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SimpleCombatLoggerClassic", "SimpleCombatLogger Classic")
+    LibStub("AceConfigRegistry-3.0"):RegisterOptionsTable("SCL_Classic/Profiles", LibStub("AceDBOptions-3.0"):GetOptionsTable(self.db))
+    LibStub("AceConfigDialog-3.0"):AddToBlizOptions("SCL_Classic/Profiles", "Profiles", "SimpleCombatLogger Classic")
+    self:RegisterChatCommand("sclc", "ChatCommand");
+    self:RegisterChatCommand("SimpleCombatLoggerClassic", "ChatCommand");
     hooksecurefunc("LoggingCombat", function(state)
         IsLoggingCombat = state
         if (self.db.profile.enabledebug) then
@@ -290,15 +305,42 @@ function SimpleCombatLogger:OnInitialize()
     end);
 end
 
-function SimpleCombatLogger:RefreshConfig()
+function SimpleCombatLoggerClassic:IsMoPContent(instanceName)
+    -- Check if the instance name matches known MoP content
+    if not instanceName then return false end
+    
+    local mopDungeons = {
+        ["Temple of the Jade Serpent"] = true,
+        ["Gate of the Setting Sun"] = true,
+        ["Stormstout Brewery"] = true,
+        ["Shado-Pan Monastery"] = true,
+        ["Mogu'shan Palace"] = true,
+        ["Siege of Niuzao Temple"] = true,
+        ["Scarlet Halls"] = true,
+        ["Scarlet Monastery"] = true,
+        ["Scholomance"] = true,
+    }
+    
+    local mopRaids = {
+        ["Terrace of Endless Spring"] = true,
+        ["Mogu'shan Vaults"] = true,
+        ["Heart of Fear"] = true,
+        ["Throne of Thunder"] = true,
+        ["Siege of Orgrimmar"] = true
+    }
+    
+    return mopDungeons[instanceName] or mopRaids[instanceName]
+end
+
+function SimpleCombatLoggerClassic:RefreshConfig()
     self:CheckToggleLogging(nil)
 end
 
-function SimpleCombatLogger:EnableACL()
+function SimpleCombatLoggerClassic:EnableACL()
     SetCVar("advancedCombatLogging", 1)
 end
 
-function SimpleCombatLogger:OnEnable()
+function SimpleCombatLoggerClassic:OnEnable()
     if (not self.db.profile.enable) then
         self:OnDisable()
         return
@@ -306,26 +348,37 @@ function SimpleCombatLogger:OnEnable()
 
     self:Print("Enabled")
     if (not self.db.profile.disableaclprompt and GetCVar("advancedCombatLogging") == "0") then
-        StaticPopup_Show("SCL_ENABLE_ACL")
+        StaticPopup_Show("SCL_CLASSIC_ENABLE_ACL")
     end
     self:RegisterEvent("UPDATE_INSTANCE_INFO", "CheckEnableLogging")
     self:RegisterEvent("PLAYER_DIFFICULTY_CHANGED", "CheckEnableLogging")
     self:RegisterEvent("ZONE_CHANGED_NEW_AREA", "CheckDisableLogging")
+    self:RegisterEvent("ZONE_CHANGED", "CheckDisableLogging")
     self:RegisterEvent("PLAYER_ENTERING_WORLD", "ArenaEventTimer")
+    self:RegisterEvent("PLAYER_LEAVING_WORLD", "CheckDisableLogging")
     self:CheckToggleLogging(nil)
 end
 
-function SimpleCombatLogger:OnDisable()
+function SimpleCombatLoggerClassic:OnDisable()
     self:Print("Disabled")
     self:UnregisterEvent("UPDATE_INSTANCE_INFO")
     self:UnregisterEvent("PLAYER_DIFFICULTY_CHANGED")
     self:UnregisterEvent("ZONE_CHANGED_NEW_AREA")
+    self:UnregisterEvent("ZONE_CHANGED")
+    self:UnregisterEvent("PLAYER_LEAVING_WORLD")
     self:StopLogging()
 end
 
-function SimpleCombatLogger:ChatCommand(input)
+function SimpleCombatLoggerClassic:ChatCommand(input)
     if (not input or input:trim() == "") then
-        Settings.OpenToCategory(self.optionsFrame)
+        -- For Classic, try to open the options frame
+        if InterfaceOptionsFrame_OpenToCategory then
+            InterfaceOptionsFrame_OpenToCategory(self.optionsFrame)
+            InterfaceOptionsFrame_OpenToCategory(self.optionsFrame) -- Called twice to ensure it opens
+        else
+            -- Fallback for different Classic versions
+            self:Print("Use /sclc enable or /sclc disable to control the addon")
+        end
     elseif (input:trim() == "enable") then
         self:SetEnable(true)
     elseif (input:trim() == "disable") then
@@ -333,29 +386,32 @@ function SimpleCombatLogger:ChatCommand(input)
     elseif (input:trim() == "test") then
         self:Print("Logging Combat: " .. tostring(IsLoggingCombat))
         self:Print("Instance Info: " .. tostring(GetInstanceInfo()))
-        self:Print("Rated Arena: " .. tostring(C_PvP.IsRatedArena()))
-        self:Print("Arena Skirmish: " .. tostring(IsArenaSkirmish()))
-        self:Print("Solo Shuffle: " .. tostring(C_PvP.IsSoloShuffle()))
-        self:Print("War Game: " .. tostring(IsWargame()))
-        self:Print("Rated BG: " .. tostring(C_PvP.IsRatedBattleground()))
+        -- Classic MoP doesn't have these PvP functions
+        if C_PvP then
+            self:Print("Rated Arena: " .. tostring(C_PvP.IsRatedArena()))
+            self:Print("Rated BG: " .. tostring(C_PvP.IsRatedBattleground()))
+        end
+        if IsArenaSkirmish then
+            self:Print("Arena Skirmish: " .. tostring(IsArenaSkirmish()))
+        end
     else
-        LibStub("AceConfigCmd-3.0").HandleCommand(SimpleCombatLogger, "SimpleCombatLogger", "SimpleCombatLogger", input)
+        LibStub("AceConfigCmd-3.0").HandleCommand(SimpleCombatLoggerClassic, "SimpleCombatLoggerClassic", "SimpleCombatLoggerClassic", input)
     end
 end
 
-function SimpleCombatLogger:SetEnable(value)
+function SimpleCombatLoggerClassic:SetEnable(value)
     if (self.db.profile.enable == value) then
         return
     end
     self.db.profile.enable = value
     if (value) then
-        SimpleCombatLogger:OnEnable()
+        SimpleCombatLoggerClassic:OnEnable()
     else
-        SimpleCombatLogger:OnDisable()
+        SimpleCombatLoggerClassic:OnDisable()
     end
 end
 
-function SimpleCombatLogger:StartLogging()
+function SimpleCombatLoggerClassic:StartLogging()
     if (self.db.profile.enabledebug) then
         self:Print("Start called")
     end
@@ -389,7 +445,7 @@ function SimpleCombatLogger:StartLogging()
     end
 end
 
-function SimpleCombatLogger:StopLogging()
+function SimpleCombatLoggerClassic:StopLogging()
     if (self.db.profile.enabledebug) then
         self:Print("Stop called")
     end
@@ -414,7 +470,7 @@ function SimpleCombatLogger:StopLogging()
     end
 end
 
-function SimpleCombatLogger:StopLoggingNow()
+function SimpleCombatLoggerClassic:StopLoggingNow()
     DelayStopTimer = nil
     if (IsLoggingCombat) then
         self:Print("Stopping Combat Logging")
@@ -430,7 +486,7 @@ function SimpleCombatLogger:StopLoggingNow()
     end
 end
 
-function SimpleCombatLogger:ArenaEventTimer(event)
+function SimpleCombatLoggerClassic:ArenaEventTimer(event)
     local name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID, instanceGroupSize, LfgDungeonID = GetInstanceInfo()
     if (self.db.profile.enabledebug) then
         self:Print("Arena Event Timer")
@@ -452,10 +508,31 @@ function SimpleCombatLogger:ArenaEventTimer(event)
             self:Print("Scheduling arena check for 5 seconds")
         end
         self:ScheduleTimer("CheckArenaLogging", 5)
+    else
+        -- Schedule a delayed check to ensure we stop logging if we've left an instance
+        self:ScheduleTimer("DelayedInstanceCheck", 3)
     end
 end
 
-function SimpleCombatLogger:CheckToggleLogging(event)
+function SimpleCombatLoggerClassic:DelayedInstanceCheck()
+    local name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID, instanceGroupSize, LfgDungeonID = GetInstanceInfo()
+    if (self.db.profile.enabledebug) then
+        self:Print("Delayed Instance Check")
+        self:Print("Currently Logging: " .. tostring(IsLoggingCombat))
+        self:Print("    instanceType: " .. tostring(instanceType))
+        self:Print("    difficultyID: " .. tostring(difficultyID))
+    end
+    
+    -- If we're not in any meaningful instance, stop logging
+    if (instanceType == nil or instanceType == "none") then
+        if (self.db.profile.enabledebug) then
+            self:Print("Delayed check: Not in instance, stopping logging")
+        end
+        self:StopLogging()
+    end
+end
+
+function SimpleCombatLoggerClassic:CheckToggleLogging(event)
     if (IsLoggingCombat) then
         self:CheckDisableLogging(nil)
     else
@@ -463,8 +540,9 @@ function SimpleCombatLogger:CheckToggleLogging(event)
     end
 end
 
-function SimpleCombatLogger:CheckEnableLogging(event)
+function SimpleCombatLoggerClassic:CheckEnableLogging(event)
     local name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID, instanceGroupSize, LfgDungeonID = GetInstanceInfo()
+    
     if (self.db.profile.enabledebug) then
         self:Print("Check Enable")
         self:Print("Currently Logging: " .. tostring(IsLoggingCombat))
@@ -479,101 +557,105 @@ function SimpleCombatLogger:CheckEnableLogging(event)
         self:Print("    instanceID: " .. tostring(instanceID))
         self:Print("    instanceGroupSize: " .. tostring(instanceGroupSize))
         self:Print("    LfgDungeonID: " .. tostring(LfgDungeonID))
+        self:Print("    isMoPContent: " .. tostring(self:IsMoPContent(name)))
     end
+    
     if (instanceType == "pvp") then
-        if (C_PvP.IsRatedBattleground()) then -- Returns false in regular BG, need to test in rated
-            if (self.db.profile.pvp.ratedbg) then
-                self:StartLogging()
-            end
-        elseif (self.db.profile.pvp.regularbg) then
+        -- Handle battlegrounds and arenas
+        if (self.db.profile.pvp.regularbg) then
             self:StartLogging()
         end
     elseif (instanceType == "party") then
-        if (maxPlayers > 5) then
-            if (self.db.profile.enabledebug) then
-                self:Print("maxPlayers greater than 5 in party instance, assuming to be non-dungeon")
+        -- Handle dungeons (including celestial dungeons that replace LFR)
+        if (difficultyID == 1 or difficultyID == 173) then -- Normal Dungeon
+            if (self.db.profile.party.normal) then
+                self:StartLogging()
+            end
+        elseif (difficultyID == 2 or difficultyID == 174) then -- Heroic Dungeon
+            if (self.db.profile.party.heroic) then
+                self:StartLogging()
+            end
+        elseif (difficultyID == 8) then -- Challenge Mode
+            if (self.db.profile.party.challenge) then
+                self:StartLogging()
             end
         else
-            if (difficultyID == 1) then -- Normal
-                if (self.db.profile.party.normal) then
-                    self:StartLogging()
+            -- Check if this might be a celestial dungeon (LFR replacement)
+            -- Celestial dungeons might use a different difficulty ID
+            -- For now, treat unknown party difficulties as celestial if they're MoP content
+            if (self:IsMoPContent(name) and self.db.profile.party.celestial) then
+                if (self.db.profile.enabledebug) then
+                    self:Print("Detected potential celestial dungeon: " .. tostring(name) .. " (ID: " .. tostring(difficultyID) .. ")")
                 end
-            elseif (difficultyID == 2) then -- Heroic
-                if (self.db.profile.party.heroic) then
-                    self:StartLogging()
-                end
-            elseif (difficultyID == 8) then -- Mythic Plus
-                if (self.db.profile.party.mythicplus) then
-                    self:StartLogging()
-                end
-            elseif (difficultyID == 23) then -- Mythic
-                if (self.db.profile.party.mythic) then
-                    self:StartLogging()
-                end
-            elseif (difficultyID == 24) then -- Timewalking
-                if (self.db.profile.party.timewalking) then
-                    self:StartLogging()
-                end
+                self:StartLogging()
             end
         end
     elseif (instanceType == "raid") then
-        if (difficultyID == 7 or difficultyID == 17) then -- LFR
-            if (self.db.profile.raid.lfr) then
+        -- Handle 10/25 man Normal/Heroic raids based on Classic difficulty IDs
+        if (difficultyID == 3 or difficultyID == 175) then -- 10-man Normal
+            if (self.db.profile.raid.normal10) then
                 self:StartLogging()
             end
-        elseif (difficultyID == 3 or difficultyID == 4 or difficultyID == 9 or difficultyID == 14) then -- Normal
-            if (self.db.profile.raid.normal) then
+        elseif (difficultyID == 4 or difficultyID == 176) then -- 25-man Normal
+            if (self.db.profile.raid.normal25) then
                 self:StartLogging()
             end
-        elseif (difficultyID == 5 or difficultyID == 6 or difficultyID == 15) then -- Heroic
-            if (self.db.profile.raid.heroic) then
+        elseif (difficultyID == 5 or difficultyID == 193) then -- 10-man Heroic
+            if (self.db.profile.raid.heroic10) then
                 self:StartLogging()
             end
-        elseif (difficultyID == 16) then -- Mythic
-            if (self.db.profile.raid.mythic) then
+        elseif (difficultyID == 6 or difficultyID == 194) then -- 25-man Heroic
+            if (self.db.profile.raid.heroic25) then
                 self:StartLogging()
             end
-        elseif (difficultyID == 33 or difficultyID == 151) then -- Timewalking
-            if (self.db.profile.raid.timewalking) then
+        elseif (difficultyID == 9) then -- 40 Player (legacy content)
+            -- For 40-man raids (MC, BWL, etc.)
+            if (self.db.profile.raid.legacy40) then
+                self:StartLogging()
+            end
+        elseif (difficultyID == 148) then -- 20 Player (ZG, AQ20)
+            -- For 20-man raids
+            if (self.db.profile.raid.legacy20) then
                 self:StartLogging()
             end
         end
     elseif (instanceType == "scenario") then
-        if (difficultyID == 167) then -- Torghast
-            if (self.db.profile.scenario.torghast) then
+        -- Handle scenarios (new in MoP) - be more specific about MoP scenarios
+        if (self:IsMoPContent(name)) then
+            if (self.db.profile.scenario.scenario) then
+                self:StartLogging()
+            end
+        else
+            -- For non-MoP scenarios, still log if enabled
+            if (self.db.profile.scenario.scenario) then
                 self:StartLogging()
             end
         end
     end
 end
 
-function SimpleCombatLogger:CheckArenaLogging()
+function SimpleCombatLoggerClassic:CheckArenaLogging()
     if (self.db.profile.enabledebug) then
         self:Print("Check Arena")
         self:Print("Currently Logging: " .. tostring(IsLoggingCombat))
-        self:Print("Rated Arena: " .. tostring(C_PvP.IsRatedArena()))
-        self:Print("Arena Skirmish: " .. tostring(IsArenaSkirmish()))
-        self:Print("Solo Shuffle: " .. tostring(C_PvP.IsSoloShuffle()))
-        self:Print("War Game: " .. tostring(IsWargame()))
-    end
-    if (C_PvP.IsRatedArena() and not IsArenaSkirmish() and not C_PvP.IsSoloShuffle() and not IsWargame()) then
-        if (self.db.profile.pvp.ratedarena) then
-            self:StartLogging()
-        else
-            self:StopLogging()
+        -- Classic may not have all the modern PvP detection functions
+        if C_PvP then
+            self:Print("Rated Arena: " .. tostring(C_PvP.IsRatedArena()))
         end
-    elseif (IsArenaSkirmish() and self.db.profile.pvp.arenaskirmish) then
-        self:StartLogging()
-    elseif (C_PvP.IsSoloShuffle() and self.db.profile.pvp.soloshuffle) then
-        self:StartLogging()
-    elseif (IsWargame() and self.db.profile.pvp.wargame) then
+        if IsArenaSkirmish then
+            self:Print("Arena Skirmish: " .. tostring(IsArenaSkirmish()))
+        end
+    end
+    
+    -- In Classic MoP, we'll handle arenas more simply
+    if (self.db.profile.pvp.arena) then
         self:StartLogging()
     else
         self:StopLogging()
     end
 end
 
-function SimpleCombatLogger:CheckDisableLogging(event)
+function SimpleCombatLoggerClassic:CheckDisableLogging(event)
     local name, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceID, instanceGroupSize, LfgDungeonID = GetInstanceInfo()
     if (self.db.profile.enabledebug) then
         self:Print("Check Disable")
@@ -589,131 +671,71 @@ function SimpleCombatLogger:CheckDisableLogging(event)
         self:Print("    instanceID: " .. tostring(instanceID))
         self:Print("    instanceGroupSize: " .. tostring(instanceGroupSize))
         self:Print("    LfgDungeonID: " .. tostring(LfgDungeonID))
+        self:Print("    isMoPContent: " .. tostring(self:IsMoPContent(name)))
     end
+    
+    -- If we're not in an instance at all, stop logging
     if (instanceType == nil or instanceType == "none") then
         if (self.db.profile.enabledebug) then
             self:Print("Not in instance, stopping logging")
         end
         self:StopLogging()
         return
-    elseif (instanceType == "pvp") then
-        if (C_PvP.IsRatedBattleground()) then -- Returns false in regular BG, need to test in rated
-            if (not self.db.profile.pvp.ratedbg) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Rated BG disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
-        elseif (not self.db.profile.pvp.regularbg) then
-            if (self.db.profile.enabledebug) then
-                self:Print("Regular BG disabled, stopping logging")
-            end
-            self:StopLogging()
+    end
+    
+    -- If we're leaving world (disconnecting/reloading), stop logging
+    if (event == "PLAYER_LEAVING_WORLD") then
+        if (self.db.profile.enabledebug) then
+            self:Print("Player leaving world, stopping logging")
         end
+        self:StopLogging()
+        return
+    end
+    
+    -- Check if current instance type should have logging disabled
+    local shouldStop = false
+    
+    if (instanceType == "pvp") then
+        shouldStop = not self.db.profile.pvp.regularbg
     elseif (instanceType == "party") then
-        if (maxPlayers > 5) then
-            if (self.db.profile.enabledebug) then
-                self:Print("maxPlayers greater than 5 in party instance, assuming to be non-dungeon")
-            end
-            self:StopLogging()
+        if (difficultyID == 1 or difficultyID == 173) then -- Normal Dungeon
+            shouldStop = not self.db.profile.party.normal
+        elseif (difficultyID == 2 or difficultyID == 174) then -- Heroic Dungeon
+            shouldStop = not self.db.profile.party.heroic
+        elseif (difficultyID == 8) then -- Challenge Mode
+            shouldStop = not self.db.profile.party.challenge
         else
-            if (difficultyID == 1) then -- Normal
-                if (not self.db.profile.party.normal) then
-                    if (self.db.profile.enabledebug) then
-                        self:Print("Normal dungeons disabled, stopping logging")
-                    end
-                    self:StopLogging()
-                end
-            elseif (difficultyID == 2) then -- Heroic
-                if (not self.db.profile.party.heroic) then
-                    if (self.db.profile.enabledebug) then
-                        self:Print("Heroic dungeons disabled, stopping logging")
-                    end
-                    self:StopLogging()
-                end
-            elseif (difficultyID == 8) then -- Mythic Plus
-                if (not self.db.profile.party.mythicplus) then
-                    if (self.db.profile.enabledebug) then
-                        self:Print("M+ disabled, stopping logging")
-                    end
-                    self:StopLogging()
-                end
-            elseif (difficultyID == 23) then -- Mythic
-                if (not self.db.profile.party.mythic) then
-                    if (self.db.profile.enabledebug) then
-                        self:Print("Mythic dungeons disabled, stopping logging")
-                    end
-                    self:StopLogging()
-                end
-            elseif (difficultyID == 24) then -- Timewalking
-                if (not self.db.profile.party.timewalking) then
-                    if (self.db.profile.enabledebug) then
-                        self:Print("Timewalking dungeons disabled, stopping logging")
-                    end
-                    self:StopLogging()
-                end
-            else
-                if (self.db.profile.enabledebug) then
-                    self:Print("Unknown party instance type, stopping logging")
-                end
-                self:StopLogging()
-            end
+            -- Unknown party instance, stop logging
+            shouldStop = true
         end
     elseif (instanceType == "raid") then
-        if (difficultyID == 7 or difficultyID == 17) then -- LFR
-            if (not self.db.profile.raid.lfr) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("LFR disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
-        elseif (difficultyID == 3 or difficultyID == 4 or difficultyID == 9 or difficultyID == 14) then -- Normal
-            if (not self.db.profile.raid.normal) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Normal raid disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
-        elseif (difficultyID == 5 or difficultyID == 6 or difficultyID == 15) then -- Heroic
-            if (not self.db.profile.raid.heroic) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Heroic raid disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
-        elseif (difficultyID == 16) then -- Mythic
-            if (not self.db.profile.raid.mythic) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Mythic raid disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
-        elseif (difficultyID == 33 or difficultyID == 151) then -- Timewalking
-            if (not self.db.profile.raid.timewalking) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Timewalking raid disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
+        if (difficultyID == 3 or difficultyID == 175) then -- 10-man Normal
+            shouldStop = not self.db.profile.raid.normal10
+        elseif (difficultyID == 4 or difficultyID == 176) then -- 25-man Normal
+            shouldStop = not self.db.profile.raid.normal25
+        elseif (difficultyID == 5 or difficultyID == 193) then -- 10-man Heroic
+            shouldStop = not self.db.profile.raid.heroic10
+        elseif (difficultyID == 6 or difficultyID == 194) then -- 25-man Heroic
+            shouldStop = not self.db.profile.raid.heroic25
+        elseif (difficultyID == 9) then -- 40 Player (legacy content)
+            shouldStop = not self.db.profile.raid.legacy40
+        elseif (difficultyID == 148) then -- 20 Player (ZG, AQ20)
+            shouldStop = not self.db.profile.raid.legacy20
         else
-            if (self.db.profile.enabledebug) then
-                self:Print("Unknown raid instance type, stopping logging")
-            end
-            self:StopLogging()
+            -- Unknown raid instance, stop logging
+            shouldStop = true
         end
     elseif (instanceType == "scenario") then
-        if (difficultyID == 167) then -- Torghast
-            if (not self.db.profile.scenario.torghast) then
-                if (self.db.profile.enabledebug) then
-                    self:Print("Torghast disabled, stopping logging")
-                end
-                self:StopLogging()
-            end
-        else
-            if (self.db.profile.enabledebug) then
-                self:Print("Unknown scenario instance type, stopping logging")
-            end
-            self:StopLogging()
+        shouldStop = not self.db.profile.scenario.scenario
+    end
+    
+    if (shouldStop) then
+        if (self.db.profile.enabledebug) then
+            self:Print("Instance type disabled or unknown, stopping logging")
         end
+        if (IsLoggingCombat) then
+            self:Print("Combat logging disabled")
+        end
+        self:StopLogging()
     end
 end

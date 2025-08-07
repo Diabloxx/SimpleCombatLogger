@@ -1,9 +1,9 @@
-## Interface: 110100
-## Title: SimpleCombatLogger
-## Notes: Automatically combat log for certain instance types and difficulties
+## Interface: 50500
+## Title: SimpleCombatLogger Classic
+## Notes: Automatically combat log for certain instance types and difficulties (Classic MoP 5.5.0)
 ## Author: Chris Sutcliff
-## Version: 1.6.12
-## SavedVariables: SimpleCombatLoggerDB
+## Version: 1.0.1-Classic
+## SavedVariables: SimpleCombatLoggerClassicDB
 ## OptionalDeps: Ace3
 ## X-Curse-Project-ID: 457620
 

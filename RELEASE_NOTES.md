@@ -1,4 +1,4 @@
-# SimpleCombatLogger Classic v1.0.0 Release Notes
+# SimpleCombatLogger Classic v1.0.1 Release Notes
 
 ## 🎉 Initial Release - Classic MoP Support
 
