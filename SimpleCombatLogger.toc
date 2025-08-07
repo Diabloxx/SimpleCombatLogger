@@ -6,6 +6,7 @@
 ## SavedVariables: SimpleCombatLoggerClassicDB
 ## OptionalDeps: Ace3
 ## X-Curse-Project-ID: 457620
+## DefaultState: Enabled
 
 embeds.xml
 Main.lua

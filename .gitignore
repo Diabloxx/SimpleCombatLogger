@@ -46,3 +46,4 @@ yarn.lock
 # Distribution folders
 dist/
 build/
+*.bat
