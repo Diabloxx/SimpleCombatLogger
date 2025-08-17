@@ -237,7 +237,7 @@ local options = {
                     order = 4
                 },
                 version = {
-                    name = "Version: 1.0.1 - Classic MoP (Interface 50500)",
+                    name = "Version: 1.0.2 - Classic MoP (Interface 50500)",
                     type = "description",
                     fontSize = "small",
                     order = 5
